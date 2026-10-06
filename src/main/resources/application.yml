@@ -1,0 +1,64 @@
+spring:
+  application:
+    name: redvital-donacion-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:db_donacion}?sslmode=${DB_SSL_MODE:prefer}
+    username: ${DB_USER:donacion_servicio}
+    password: ${DB_PASSWORD:secret}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    schemas: public
+    user: ${FLYWAY_USER:donacion_propietario}
+    password: ${FLYWAY_PASSWORD:secret}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:https://auth.redvital.gov.co/realms/redvital}
+          jwk-set-uri: ${JWT_JWK_SET_URI:https://auth.redvital.gov.co/realms/redvital/protocol/openid-connect/certs}
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  servlet:
+    context-path: /
+
+app:
+  campania-service:
+    url: ${CAMPANIA_SERVICE_URL:http://redvital-campania-service:8081}
+    connect-timeout-ms: 3000
+    read-timeout-ms: 3000
+  vencimiento-job:
+    cron: "0 */5 * * * *"
+
+logging:
+  level:
+    root: INFO
+    co.gov.redvital.donacion: DEBUG
+    org.springframework.security: INFO
+    org.flywaydb: INFO
+  pattern:
+    level: "%5p [${spring.application.name:},%X{X-Correlacion-Id:-}]"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} ${logging.pattern.level} %-40.40logger{39} : %m%n"
