@@ -157,7 +157,27 @@ El proyecto incluye las siguientes suites de prueba:
 
 ### Contenerización en Docker
 
-El repositorio incluye soporte para construcción multi-etapa basada en imágenes Eclipse Temurin JDK 25 para la fase de compilación y JRE 25 sobre Alpine Linux para la ejecución del contenedor.
+El `Dockerfile` construye la aplicación con Maven y Eclipse Temurin 21, y ejecuta el JAR con Eclipse Temurin 21 JRE. Para construir y levantar el contenedor:
+
+```bash
+docker compose up --build
+```
+
+El servicio queda disponible en `http://localhost:8080`. El Compose se conecta a una instancia PostgreSQL existente; por defecto intenta acceder a una base en el host (`host.docker.internal`). Configura la conexión creando un archivo `.env` en la raíz del proyecto, por ejemplo:
+
+```dotenv
+DB_HOST=host.docker.internal
+DB_PORT=5432
+DB_NAME=db_donacion
+DB_USER=donacion_servicio
+DB_PASSWORD=secret
+FLYWAY_USER=donacion_propietario
+FLYWAY_PASSWORD=secret
+DB_SSL_MODE=prefer
+APP_PORT=8080
+```
+
+Sustituye las credenciales de ejemplo por las de tu entorno. PostgreSQL debe tener previamente el esquema y los permisos esperados por la aplicación. Para detener el servicio, ejecuta `docker compose down`.
 
 ### Verificación de Estado (Actuator)
 
