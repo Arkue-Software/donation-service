@@ -2,9 +2,8 @@ package co.gov.redvital.donacion;
 
 import co.gov.redvital.donacion.domain.model.ActorTipo;
 import co.gov.redvital.donacion.domain.service.MotorTransicionEstadoUnidad;
-import co.gov.redvital.donacion.web.controller.CorrelacionLoggingFilterMDC;
-import co.gov.redvital.donacion.web.controller.RegistroDonacionConUnidadYEvento;
-import co.gov.redvital.donacion.web.controller.RegistroDonacionConUnidadYEvento.*;
+import co.gov.redvital.donacion.infrastructure.client.CampaniaServiceAdapter;
+import co.gov.redvital.donacion.infrastructure.logging.CorrelacionLoggingFilterMDC;
 import co.gov.redvital.donacion.web.controller.RegistroDonacionIdempotenteDS10;
 import co.gov.redvital.donacion.web.controller.RegistroDonacionIdempotenteDS10.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +30,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -191,7 +191,9 @@ public class ServicioDonacionTokensLlavePruebaTest {
         }
 
         @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http, CorrelacionLoggingFilterMDC correlacionFilter) throws Exception {
+        public SecurityFilterChain securityFilterChain(
+                HttpSecurity http,
+                CorrelacionLoggingFilterMDC.CorrelacionMdcFilter correlacionFilter) throws Exception {
             http
                     .csrf(csrf -> csrf.disable())
                     .addFilterBefore(correlacionFilter, UsernamePasswordAuthenticationFilter.class)
@@ -251,20 +253,15 @@ public class ServicioDonacionTokensLlavePruebaTest {
                     correlacionId
             );
 
-            ResultadoRegistroIdempotente resultadoIdempotente = new ResultadoRegistroIdempotente(
-                    responseDto,
-                    false, // reenvio
-                    201
-            );
-
-            when(donacionIdempotenteService.procesarRegistroDonacionConIdempotencia(
-                    any(RegistroDonacionRequestDto.class),
+            when(donacionIdempotenteService.procesarDonacionIdempotente(
+                    eq(OPERADOR_ID.toString()),
                     eq(idempotencyKey),
+                    any(RegistroDonacionRequestDto.class),
                     eq(INSTITUCION_BOGOTA_ID),
-                    eq(OPERADOR_ID),
-                    eq("operador"),
                     eq(correlacionId)
-            )).thenReturn(resultadoIdempotente);
+            )).thenReturn(ResponseEntity.status(HttpStatus.CREATED)
+                    .header("X-Correlacion-Id", correlacionId)
+                    .body(responseDto));
 
             mockMvc.perform(post("/v1/donaciones")
                             .header("Authorization", "Bearer " + token)
@@ -312,15 +309,15 @@ public class ServicioDonacionTokensLlavePruebaTest {
                     null, INSTITUCION_BOGOTA_ID, OPERADOR_ID, Instant.now(), List.of(), correlacionId
             );
 
-            ResultadoRegistroIdempotente resultadoCacheado = new ResultadoRegistroIdempotente(
-                    responseDto,
-                    true, // reenvio detectado
-                    201
-            );
-
-            when(donacionIdempotenteService.procesarRegistroDonacionConIdempotencia(
-                    any(), eq(idempotencyKey), eq(INSTITUCION_BOGOTA_ID), eq(OPERADOR_ID), eq("operador"), eq(correlacionId)
-            )).thenReturn(resultadoCacheado);
+            when(donacionIdempotenteService.procesarDonacionIdempotente(
+                    eq(OPERADOR_ID.toString()),
+                    eq(idempotencyKey),
+                    any(RegistroDonacionRequestDto.class),
+                    eq(INSTITUCION_BOGOTA_ID),
+                    eq(correlacionId)
+            )).thenReturn(ResponseEntity.status(HttpStatus.CREATED)
+                    .header("X-Correlacion-Id", correlacionId)
+                    .body(responseDto));
 
             // Segunda petición simula el reenvío
             mockMvc.perform(post("/v1/donaciones")

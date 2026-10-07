@@ -127,7 +127,7 @@ public class RespuestaIndistinguibleInstitucionAjenaDS04 {
                 UUID grupoSanguineoId
         ) {
             LocalDate fechaActual = LocalDate.now();
-            return existenciasRepository.consultarExistenciasPorInventarioYFiltros(institucionId, fechaActual, componenteId, grupoSanguineoId);
+            return existenciasRepository.consultarExistenciasPorInstitucionYFiltros(institucionId, fechaActual, componenteId, grupoSanguineoId);
         }
 
         /**
